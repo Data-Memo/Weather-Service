@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Memo - Weather</title>
+    <style>
+        /* إعدادات الصفحة والخلفية */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; margin: 0; 
+            background: linear-gradient(135deg, #ff416c, #4b6cb7);
+            color: #fff;
+        }
+
+        /* البوكس: طويل وعريض مع توزيع العناصر */
+        .container { 
+            background: rgba(20, 20, 20, 0.95); 
+            padding: 40px;
+            border-radius: 30px; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+            text-align: center; 
+            width: 450px; 
+            height: 550px; /* طول ثابت لإبراز التمركز */
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+        }
+
+        /* الجزء العلوي: العناوين */
+        .header-section { margin-top: 10px; }
+        
+        .brand-name { 
+            color: #00d2ff; 
+            font-size: 2.8rem; 
+            font-weight: bold; 
+            font-style: italic; 
+            margin: 0;
+        }
+
+        .sub-title { 
+            font-size: 1.2rem; 
+            font-weight: bold; 
+            margin: 5px 0; 
+            color: #ccc; 
+        }
+
+        /* الجزء الأوسط: الإدخال والبحث (يتمركز في وسط المساحة المتبقية) */
+        .main-content {
+            flex-grow: 1; /* يأخذ كل المساحة المتاحة ليتمكن من التوسط */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* تمركز عمودي */
+            gap: 15px; /* مسافة بين الحقل والزر */
+        }
+
+        input { 
+            padding: 15px; width: 100%; box-sizing: border-box; 
+            border: 1px solid #333; background: #2a2a2a; color: #fff;
+            border-radius: 12px; outline: none; font-size: 1.1rem;
+            text-align: center;
+        }
+
+        button#searchBtn { 
+            padding: 15px; background: #00d2ff; color: #000; 
+            border: none; border-radius: 12px; cursor: pointer; 
+            width: 100%; font-weight: bold; font-size: 1.1rem;
+            transition: 0.3s;
+        }
+        button#searchBtn:hover { background: #00b4db; }
+
+        /* منطقة النتائج تظهر تحت زر البحث مباشرة */
+        #result { min-height: 100px; margin-top: 10px; }
+        .weather-icon { font-size: 3rem; margin: 5px 0; display: block; }
+        .temp-text { font-size: 2rem; font-weight: bold; }
+
+        /* زر الترجمة في الأسفل: نص أزرق تحته خط */
+        .lang-toggle-btn {
+            background: transparent; 
+            color: #00d2ff; 
+            border: none;
+            padding: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 1rem;
+            text-decoration: underline; /* الخط تحت الكلمة */
+            margin-bottom: 10px;
+            align-self: center;
+        }
+    </style>
+</head>
+<body dir="ltr">
+
+    <div class="container">
+        <div class="header-section">
+            <h1 class="brand-name">Data Memo</h1>
+            <p id="subTitle" class="sub-title">for Weather Services</p>
+        </div>
+        
+        <div class="main-content">
+            <input type="text" id="city" placeholder="Enter city name...">
+            <button id="searchBtn" onclick="fetchWeather()">Get Weather</button>
+            
+            <div id="result"></div>
+        </div>
+
+        <button class="lang-toggle-btn" id="langBtn" onclick="toggleLanguage()">العربية</button>
+    </div>
+
+    <script>
+        let currentLang = 'en';
+        const translations = {
+            en: { sub: "for Weather Services", placeholder: "Enter city name...", button: "Get Weather", toggleBtn: "العربية", loading: "Searching...", city: "City", temp: "Temp", cond: "Condition", error: "City not found!" },
+            ar: { sub: "لخدمات الطقس", placeholder: "أدخل اسم المدينة...", button: "احصل على الطقس", toggleBtn: "English", loading: "جاري البحث...", city: "المدينة", temp: "الحرارة", cond: "الحالة", error: "المدينة غير موجودة!" }
+        };
+
+        function getWeatherIcon(condition) {
+            const cond = condition.toLowerCase();
+            if (cond.includes('cloud')) return '☁️';
+            if (cond.includes('rain')) return '🌧️';
+            if (cond.includes('clear') || cond.includes('sun')) return '☀️';
+            return '🌡️';
+        }
+
+        function toggleLanguage() {
+            currentLang = (currentLang === 'en') ? 'ar' : 'en';
+            const t = translations[currentLang];
+            document.body.dir = (currentLang === 'ar') ? 'rtl' : 'ltr';
+            document.getElementById('subTitle').innerText = t.sub;
+            document.getElementById('city').placeholder = t.placeholder;
+            document.getElementById('searchBtn').innerText = t.button;
+            document.getElementById('langBtn').innerText = t.toggleBtn;
+            document.getElementById('result').innerHTML = ""; 
+        }
+
+        async function fetchWeather() {
+            const city = document.getElementById('city').value;
+            const resultDiv = document.getElementById('result');
+            if(!city) return;
+            const t = translations[currentLang];
+            resultDiv.innerHTML = `<p>${t.loading}</p>`;
+            try {
+                const response = await fetch(`/weather?city=${city}&lang=${currentLang}`);
+                const data = await response.json();
+                if(data.error) {
+                    resultDiv.innerHTML = `<p style="color:#ff416c;">${t.error}</p>`;
+                } else {
+                    const icon = getWeatherIcon(data.condition);
+                    resultDiv.innerHTML = `
+                        <span class="weather-icon">${icon}</span>
+                        <div class="temp-text">${data.temperature}</div>
+                        <small style="color:#666">${data.timestamp}</small>
+                    `;
+                }
+            } catch (e) { resultDiv.innerHTML = "Error!"; }
+        }
+    </script>
+</body>
+</html>
